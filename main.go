@@ -2,18 +2,18 @@ package main
 
 import (
 	"flag"
-	"time"
 	"fmt"
+	"time"
 
 	"mdp_compared/compared"
 )
 
 var (
-	addr1  		  = ""
+	addr1         = ""
 	addr2         = ""
 	addr3         = ""
-	port      	  int
-	worker 		  int
+	port          int
+	worker        int
 	database      = ""
 	measurement   = ""
 	cqmeasurement = ""
@@ -22,7 +22,6 @@ var (
 	groupbytime   = ""
 	checkandsyn   = ""
 )
-
 
 func init() {
 	flag.StringVar(&addr1, "addr1", "", "addr1")
@@ -40,13 +39,14 @@ func init() {
 	flag.Parse()
 }
 
-func main()  {
+func main() {
 	start := time.Now()
-	compared.ComparedCQ1(addr1, addr2, addr3, port,worker, database,
-		measurement,cqmeasurement, starttime, endtime, groupbytime, checkandsyn)
+	compared.ComparedCQ1(addr1, addr2, addr3, port, worker, database,
+		measurement, cqmeasurement, starttime, endtime, groupbytime, checkandsyn)
 	end := time.Now()
 	fmt.Println("used time:", end.Sub(start))
 }
+
 //go run main.go  -addr1="http://192.168.20.132" -addr2="http://192.168.20.133" -addr3="http://192.168.20.135" -database="diff"  -measurement="diff1s_1" -starttime="2020-01-07T09:40:16Z" -endtime="2020-01-07T09:42:40Z"  -checkandsyn="yes" -port=8086 -worker=5
 
 //func main() {

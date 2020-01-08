@@ -11,7 +11,7 @@ import (
 )
 
 func Synchronize1(addra, addrb string, port int, dbname, msname,
-	diffStaTimeStr, diffEndTimeStr string) {
+	diffStaTimeStr, diffEndTimeStr string, fieldKeys, tagKeys [][]interface{}) {
 	start := time.Now()
 	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
 		Database: dbname,
@@ -29,13 +29,13 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 	writernum := 0
 	writerbach := 0
 	if len(resA[0].Series) != 0 {
-		valuesListA  := resA[0].Series[0].Values
+		valuesListA := resA[0].Series[0].Values
 		tagKeysListA := resA[0].Series[0].Columns
-		fieldKeysA   := query.QueryFieldKeys(addra, port, dbname, msname)
-		fieldValueType := fieldKeysA[0][1].(string)
-		tagKeysA := query.QueryTagKeys(addra, port, dbname, msname)
+		//fieldKeysA   := query.QueryFieldKeys(addra, port, dbname, msname)
+		fieldValueType := fieldKeys[0][1].(string)
+		//tagKeysA := query.QueryTagKeys(addra, port, dbname, msname)
 		measurement := resA[0].Series[0].Name
-		if len(resB[0].Series) == 0 {//如果该时间段的时间间隔数据为0，直接将A节点数据写入节点B中
+		if len(resB[0].Series) == 0 { //如果该时间段的时间间隔数据为0，直接将A节点数据写入节点B中
 			for i := 0; i < len(valuesListA); i++ {
 				mtx.Lock()
 				writernum++
@@ -45,16 +45,16 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 					pointMap[k] = valuesListA[i][j]
 				}
 
-				tagMap := make(map[string]string, len(tagKeysA))
-				for _, v := range tagKeysA {
+				tagMap := make(map[string]string, len(tagKeys))
+				for _, v := range tagKeys {
 					tagMap[v[0].(string)] = pointMap[v[0].(string)].(string)
 				}
 
-				fieldMap := make(map[string]interface{}, len(fieldKeysA))
-				for _, v := range fieldKeysA {
+				fieldMap := make(map[string]interface{}, len(fieldKeys))
+				for _, v := range fieldKeys {
 					fieldValue, err := json.Marshal(pointMap[v[0].(string)])
 					if err != nil {
-						fmt.Println("create json faild",err)
+						fmt.Println("create json faild", err)
 					}
 					switch fieldValueType {
 					case "float":
@@ -82,7 +82,7 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 					err := c.Write(bp)
 					if err != nil {
 						fmt.Println("write error", err)
-						RestartClient(addrb,bp)
+						RestartClient(addrb, bp)
 					}
 					bp.ClearPoints()
 				}
@@ -109,13 +109,13 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 						pointMap[k] = valuesListA[i][j]
 					}
 
-					tagMap := make(map[string]string, len(tagKeysA))
-					for _, v := range tagKeysA {
+					tagMap := make(map[string]string, len(tagKeys))
+					for _, v := range tagKeys {
 						tagMap[v[0].(string)] = pointMap[v[0].(string)].(string)
 					}
 
-					fieldMap := make(map[string]interface{}, len(fieldKeysA))
-					for _, v := range fieldKeysA {
+					fieldMap := make(map[string]interface{}, len(fieldKeys))
+					for _, v := range fieldKeys {
 						fieldValue, _ := json.Marshal(pointMap[v[0].(string)])
 						//fieldValueType := v[1].(string)
 						switch fieldValueType {
@@ -141,7 +141,7 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 						err := c.Write(bp)
 						if err != nil {
 							fmt.Println("write error", err)
-							RestartClient(addrb,bp)
+							RestartClient(addrb, bp)
 						}
 						bp.ClearPoints()
 					}
@@ -154,28 +154,28 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 		}
 	}
 	end := time.Now()
-	fmt.Println("\nEnd of synchronization",diffStaTimeStr,":::::",diffEndTimeStr,
-		"used time:",end.Sub(start))
+	fmt.Println("\nEnd of synchronization", diffStaTimeStr, ":::::", diffEndTimeStr,
+		"used time:", end.Sub(start))
 }
 
-func RestartClient(addr string,bp client.BatchPoints) {
+func RestartClient(addr string, bp client.BatchPoints) {
 	c, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:addr,
+		Addr: addr,
 	})
 	if err != nil {
 		fmt.Println("Error creating InfluxDB Client: ", err.Error())
 	}
 
 	err = c.Write(bp)
-	if err != nil{
+	if err != nil {
 		fmt.Println("write points error: ", err)
-		RestartClient(addr,bp)
+		RestartClient(addr, bp)
 	}
 	bp.ClearPoints()
 }
 
-func SynchronizeCq1(address1,addrb string, port int, dbname, cqmsname,
-	starttime, endtime string)  {
+func SynchronizeCq1(address1, addrb string, port int, dbname, cqmsname,
+	starttime, endtime string) {
 	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
 		Database: dbname,
 	})
@@ -187,7 +187,7 @@ func SynchronizeCq1(address1,addrb string, port int, dbname, cqmsname,
 		fmt.Println("Error creating InfluxDB Client: ", err.Error())
 	}
 	defer c.Close()
-	res := query.QueryDiffData(address1, port ,dbname, cqmsname, starttime, endtime)
+	res := query.QueryDiffData(address1, port, dbname, cqmsname, starttime, endtime)
 	valuesList := res[0].Series[0].Values
 	tagKeysList := res[0].Series[0].Columns
 	fieldKeys := query.QueryFieldKeys(address1, port, dbname, cqmsname)
@@ -208,7 +208,7 @@ func SynchronizeCq1(address1,addrb string, port int, dbname, cqmsname,
 		}
 
 		timestemp := valuesList[i][0]
-		timeStr, _ := time.Parse(time.RFC3339,timestemp.(string))
+		timeStr, _ := time.Parse(time.RFC3339, timestemp.(string))
 		pt, err := client.NewPoint(measurement, tagMap, fieldMap, timeStr)
 		if err != nil {
 			fmt.Println("Create point:", pt.String(), "failed!")
