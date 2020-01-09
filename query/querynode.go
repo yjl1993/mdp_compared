@@ -57,7 +57,6 @@ func QueryFieldKeys(address string, port int, dbname, msname string) [][]interfa
 	return result
 }
 
-
 func connInflux(address string, port int) client.Client {
 	cli, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr: fmt.Sprintf("%s:%d", address, port),
@@ -81,6 +80,6 @@ func QueryDB(cli client.Client, dbname, cmd string) (res []client.Result, err er
 	} else {
 		return res, err
 	}
+	fmt.Println("no here")
 	return res, nil
 }
-

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/influxdata/influxdb1-client/v2"
 	"log"
 	"mdp_compared/conf"
@@ -9,15 +10,19 @@ import (
 	"time"
 )
 
-func main()  {
-	conf := conf.NewToml()
+func main() {
+	var conf conf.Config
+	var conpath = `D:\go\src\mdp_compared\conf.toml`
+	if _, err := toml.DecodeFile(conpath, &conf); err != nil {
+		panic(err)
+	}
 	addrress := conf.NodeAddr.NodeAddr2
 	port := conf.Port.Port
-	db   := conf.Database.DatabaseName
+	db := conf.Database.DatabaseName
 	cqmeasurement := conf.Database.Cqmeasurement
 	addr := fmt.Sprintf("%s:%d", addrress, port)
-	cqcount, _ := query.QueryDurTime(addrress,port,db, cqmeasurement,conf.Durtime.Starttime,conf.Durtime.Endtime)
-	fieldKey := query.QueryFieldKeys(addrress,port,db, cqmeasurement)
+	cqcount, _ := query.QueryDurTime(addrress, port, db, cqmeasurement, conf.Durtime.Starttime, conf.Durtime.Endtime)
+	fieldKey := query.QueryFieldKeys(addrress, port, db, cqmeasurement)
 	c, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr: addr,
 	})
@@ -25,17 +30,17 @@ func main()  {
 		log.Fatalln("Error: ", err)
 	}
 	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
-		Database:  db,
+		Database: db,
 	})
 	for i := 0; i < len(cqcount); i++ {
 		fieldKeyStr := fieldKey[0][0].(string)
 		timeStr := cqcount[i][0].(string)
-		timeStrParse, _ := time.Parse(time.RFC3339,timeStr)
+		timeStrParse, _ := time.Parse(time.RFC3339, timeStr)
 		tags := make(map[string]string)
 		fields := map[string]interface{}{
-			fieldKeyStr : 1,
+			fieldKeyStr: 1,
 		}
-		pt, err := client.NewPoint(cqmeasurement, tags, fields,timeStrParse)
+		pt, err := client.NewPoint(cqmeasurement, tags, fields, timeStrParse)
 		fmt.Println(pt)
 		if err != nil {
 			log.Fatalln("Error: ", err)
