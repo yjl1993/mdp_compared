@@ -6,7 +6,6 @@ import (
 	"github.com/influxdata/influxdb1-client/v2"
 	"mdp_compared/query"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -25,21 +24,13 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 	defer c.Close()
 	resA := query.QueryDiffData(addra, port, dbname, msname, diffStaTimeStr, diffEndTimeStr)
 	resB := query.QueryDiffData(addrb, port, dbname, msname, diffStaTimeStr, diffEndTimeStr)
-	var mtx sync.Mutex
-	writernum := 0
-	writerbach := 0
 	if len(resA[0].Series) != 0 {
 		valuesListA := resA[0].Series[0].Values
 		tagKeysListA := resA[0].Series[0].Columns
-		//fieldKeysA   := query.QueryFieldKeys(addra, port, dbname, msname)
 		fieldValueType := fieldKeys[0][1].(string)
-		//tagKeysA := query.QueryTagKeys(addra, port, dbname, msname)
 		measurement := resA[0].Series[0].Name
 		if len(resB[0].Series) == 0 { //如果该时间段的时间间隔数据为0，直接将A节点数据写入节点B中
 			for i := 0; i < len(valuesListA); i++ {
-				mtx.Lock()
-				writernum++
-				mtx.Unlock()
 				pointMap := make(map[string]interface{}, len(tagKeysListA))
 				for j, k := range tagKeysListA {
 					pointMap[k] = valuesListA[i][j]
@@ -76,9 +67,6 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 				}
 				bp.AddPoint(pt)
 				if i%1000 == 0 {
-					mtx.Lock()
-					writerbach++
-					mtx.Unlock()
 					err := c.Write(bp)
 					if err != nil {
 						fmt.Println("write error", err)
@@ -174,7 +162,7 @@ func RestartClient(addr string, bp client.BatchPoints) {
 	bp.ClearPoints()
 }
 
-func SynchronizeCq1(address1, addrb string, port int, dbname, cqmsname,
+func SynchronizeCq1(addra, addrb string, port int, dbname, cqmsname,
 	starttime, endtime string) {
 	bp, _ := client.NewBatchPoints(client.BatchPointsConfig{
 		Database: dbname,
@@ -187,10 +175,10 @@ func SynchronizeCq1(address1, addrb string, port int, dbname, cqmsname,
 		fmt.Println("Error creating InfluxDB Client: ", err.Error())
 	}
 	defer c.Close()
-	res := query.QueryDiffData(address1, port, dbname, cqmsname, starttime, endtime)
+	res := query.QueryDiffData(addra, port, dbname, cqmsname, starttime, endtime)
 	valuesList := res[0].Series[0].Values
 	tagKeysList := res[0].Series[0].Columns
-	fieldKeys := query.QueryFieldKeys(address1, port, dbname, cqmsname)
+	fieldKeys := query.QueryFieldKeys(addra, port, dbname, cqmsname)
 	measurement := res[0].Series[0].Name
 	for i := 0; i < len(valuesList); i++ {
 		pointMap := make(map[string]interface{}, len(tagKeysList))
