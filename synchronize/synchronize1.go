@@ -57,6 +57,9 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 					case "string":
 						fieldV := string(fieldValue)[1 : len(fieldValue)-1]
 						fieldMap[v[0].(string)] = fieldV
+					case "bool":
+						fieldValues, _ := strconv.ParseBool(string(fieldValue))
+						fieldMap[v[0].(string)] = fieldValues
 					}
 				}
 				timestemp := pointMap["time"]
@@ -115,6 +118,9 @@ func Synchronize1(addra, addrb string, port int, dbname, msname,
 							fieldMap[v[0].(string)] = fieldValues
 						case "string":
 							fieldValues := string(fieldValue)[1 : len(fieldValue)-1] //去掉“”
+							fieldMap[v[0].(string)] = fieldValues
+						case "bool":
+							fieldValues, _ := strconv.ParseBool(string(fieldValue))
 							fieldMap[v[0].(string)] = fieldValues
 						}
 					}
